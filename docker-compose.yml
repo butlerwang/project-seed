@@ -1,0 +1,81 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      APP_ENV: development
+      APP_ADDR: :8080
+      DATABASE_URL: postgres://seed:seed@postgres:5432/seed?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-change-me-at-least-32-chars-long!!}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      SIDECAR_URL: http://pdf-sidecar:3001
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_ACCESS_KEY: seed
+      STORAGE_SECRET_KEY: seed-dev-secret
+      STORAGE_BUCKET: seed-assets
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_FAST_MODEL: ${ANTHROPIC_FAST_MODEL:-claude-haiku-4-5-20251001}
+      ANTHROPIC_CAPABLE_MODEL: ${ANTHROPIC_CAPABLE_MODEL:-claude-sonnet-4-6}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    depends_on:
+      - backend
+
+  pdf-sidecar:
+    build: ./services/pdf-sidecar
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: seed
+      POSTGRES_USER: seed
+      POSTGRES_PASSWORD: seed
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U seed"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: seed
+      MINIO_ROOT_PASSWORD: seed-dev-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  ollama:
+    profiles: ["ollama"]
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+volumes:
+  postgres_data:
+  minio_data:
+  ollama_data:

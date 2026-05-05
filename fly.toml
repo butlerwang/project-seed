@@ -1,0 +1,46 @@
+app = "project-seed-api"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "backend/Dockerfile"
+
+[deploy]
+  release_command = "/usr/local/bin/seed-migrate"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 250
+    soft_limit = 200
+
+[[http_service.checks]]
+  interval = "15s"
+  timeout = "5s"
+  grace_period = "10s"
+  method = "GET"
+  path = "/health"
+
+[env]
+  APP_ENV = "production"
+  APP_ADDR = ":8080"
+
+# Secrets: flyctl secrets set KEY=VALUE
+# DATABASE_URL      — Neon connection string
+# JWT_SECRET        — 32+ chars
+# SIDECAR_URL       — https://project-seed-sidecar.fly.dev
+# ANTHROPIC_API_KEY
+# STORAGE_ENDPOINT  — https://<account>.r2.cloudflarestorage.com
+# STORAGE_BUCKET    — seed-assets
+# STORAGE_ACCESS_KEY
+# STORAGE_SECRET_KEY
+# ADMIN_EMAIL
+# FRONTEND_URL      — https://project-seed.pages.dev
