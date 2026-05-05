@@ -11,6 +11,7 @@ frontend/.next/
 frontend/node_modules/
 frontend/.vercel/
 frontend/out/
+*.tsbuildinfo
 
 # Sidecar
 services/pdf-sidecar/node_modules/
