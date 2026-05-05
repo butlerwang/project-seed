@@ -1,0 +1,20 @@
+# env
+.env
+.env.local
+
+# Go
+backend/vendor/
+*.test
+
+# Next.js
+frontend/.next/
+frontend/node_modules/
+frontend/.vercel/
+frontend/out/
+
+# Sidecar
+services/pdf-sidecar/node_modules/
+
+# Misc
+.DS_Store
+*.log
