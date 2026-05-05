@@ -3,17 +3,30 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/butlerwang/project-seed/backend/internal/config"
 	"github.com/butlerwang/project-seed/backend/internal/handler"
 	"github.com/butlerwang/project-seed/backend/internal/repository"
 	"github.com/butlerwang/project-seed/backend/internal/service"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jmoiron/sqlx"
 )
 
 func main() {
 	cfg := config.Load()
 
 	var repos repository.Repository = repository.NewMemoryRepository()
+	if cfg.DatabaseURL != "" {
+		db, err := openDB(cfg.DatabaseURL)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+		repos = repository.NewPostgresRepository(db)
+	} else {
+		log.Print("DATABASE_URL unset — using in-memory repository")
+	}
 
 	svc := service.New(cfg, repos)
 	router := handler.NewRouter(cfg, svc, repos)
@@ -22,4 +35,15 @@ func main() {
 	if err := http.ListenAndServe(cfg.Address, router); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func openDB(url string) (*sqlx.DB, error) {
+	db, err := sqlx.Open("pgx", url)
+	if err != nil {
+		return nil, err
+	}
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	return db, db.Ping()
 }
