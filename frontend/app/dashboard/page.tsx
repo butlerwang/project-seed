@@ -1,23 +1,22 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { api, type User } from "@/lib/api";
+
 import { logout } from "@/lib/auth";
+import { useAuth } from "@/lib/useAuth";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    api.auth.me().then(setUser).catch(() => router.push("/login"));
-  }, [router]);
+  const { user, loading } = useAuth();
 
   async function handleLogout() {
     await logout();
+    toast.success("Signed out");
     router.push("/login");
   }
 
-  if (!user) return <div className="p-8 text-gray-400">Loading...</div>;
+  if (loading || !user) return <div className="p-8 text-gray-400">Loading...</div>;
 
   return (
     <main className="p-8 max-w-3xl mx-auto">

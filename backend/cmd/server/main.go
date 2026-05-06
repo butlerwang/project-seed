@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/butlerwang/project-seed/backend/internal/config"
 	"github.com/butlerwang/project-seed/backend/internal/handler"
 	"github.com/butlerwang/project-seed/backend/internal/repository"
 	"github.com/butlerwang/project-seed/backend/internal/service"
+	"github.com/butlerwang/project-seed/backend/internal/storage"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 )
@@ -29,7 +33,25 @@ func main() {
 	}
 
 	svc := service.New(cfg, repos)
-	router := handler.NewRouter(cfg, svc, repos)
+	var store storage.Storage
+	if cfg.StorageEndpoint != "" && cfg.StorageAccess != "" {
+		s3store, err := storage.NewS3Storage(
+			context.Background(),
+			cfg.StorageEndpoint,
+			cfg.StorageAccess,
+			cfg.StorageSecret,
+			cfg.StorageBucket,
+		)
+		if err != nil {
+			slog.Error("failed to init storage", "err", err)
+			os.Exit(1)
+		}
+		store = s3store
+	} else {
+		store = storage.NewMemoryStorage()
+	}
+
+	router := handler.NewRouter(cfg, svc, repos, store)
 
 	log.Printf("listening on %s (env=%s)", cfg.Address, cfg.Environment)
 	if err := http.ListenAndServe(cfg.Address, router); err != nil {

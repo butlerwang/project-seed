@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"time"
 
@@ -16,12 +17,17 @@ var capableOps = map[string]bool{
 }
 
 type Router struct {
-	cfg    config.Config
-	client *http.Client
+	cfg      config.Config
+	client   *http.Client
+	override Provider
 }
 
 func NewRouter(cfg config.Config) *Router {
 	return &Router{cfg: cfg, client: &http.Client{Timeout: 90 * time.Second}}
+}
+
+func NewRouterWithProvider(cfg config.Config, p Provider) *Router {
+	return &Router{cfg: cfg, client: &http.Client{Timeout: 90 * time.Second}, override: p}
 }
 
 // Chat sends a single-turn LLM request.
@@ -37,7 +43,20 @@ func (r *Router) Chat(ctx context.Context, operation, system, userPrompt string,
 	})
 }
 
+func (r *Router) Stream(ctx context.Context, operation, system, userPrompt string, w io.Writer) error {
+	provider, model := r.pick(operation)
+	return provider.Stream(ctx, Request{
+		Model:      model,
+		System:     system,
+		UserPrompt: userPrompt,
+		MaxTokens:  2048,
+	}, w)
+}
+
 func (r *Router) pick(operation string) (Provider, string) {
+	if r.override != nil {
+		return r.override, "mock"
+	}
 	capable := capableOps[operation]
 	if r.cfg.AnthropicKey != "" {
 		model := r.cfg.AnthropicFast

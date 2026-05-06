@@ -4,6 +4,8 @@
 
 # Go
 backend/vendor/
+backend/.gocache/
+backend/.gomodcache/
 *.test
 
 # Next.js

@@ -1,6 +1,9 @@
 package llm
 
-import "context"
+import (
+	"context"
+	"io"
+)
 
 type Request struct {
 	Model      string
@@ -12,4 +15,5 @@ type Request struct {
 
 type Provider interface {
 	Chat(ctx context.Context, req Request) (string, error)
+	Stream(ctx context.Context, req Request, w io.Writer) error
 }

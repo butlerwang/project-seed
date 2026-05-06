@@ -22,7 +22,7 @@ func main() {
 	defer db.Close()
 
 	repos := repository.NewPostgresRepository(db)
-	authSvc := service.NewAuthService(cfg, repos)
+	authSvc := service.NewAuthService(cfg, repos, nil)
 
 	email := "admin@example.com"
 	if cfg.AdminEmail != "" {
