@@ -1,0 +1,114 @@
+# project-seed - Project Factory Manifest
+# Source of truth for scaffold defaults, capability gates, and generated handoff docs.
+
+project:
+  name: project-seed
+  description: "Full-stack SaaS template for fast, low-cost AI-assisted product starts."
+  target_user: "founder-led projects built with Claude Code and Codex"
+  template: true
+
+factory:
+  strategy: "capability-gated scaffold"
+  confidence_target: "factually verified before handoff, not assumed"
+  source_of_truth:
+    product: "_docs/DESIGN.md"
+    execution: "_docs/CODEX.md"
+    manifest: "project.yaml"
+    log: "_docs/IMPLEMENTATION_LOG.md"
+    summary: "_docs/EXECUTIVE_SUMMARY.md"
+  required_gates:
+    - "Business intake completed"
+    - "Capability manifest generated"
+    - "Human approval before architecture lock"
+    - "Template clone and rename verified"
+    - "Build, tests, Docker, and deploy dry-runs verified where possible"
+    - "Known residual risks written into the handoff"
+
+stack_defaults:
+  backend: "Go 1.24 + chi + pgx/v5 + goose"
+  frontend: "Next.js 15 + Tailwind + Cloudflare Workers via OpenNext"
+  database: "PostgreSQL via Neon"
+  auth: "JWT access tokens + HTTP-only refresh tokens; OAuth optional"
+  storage: "Cloudflare R2 in production, MinIO locally"
+  deploy:
+    backend: "Fly.io"
+    frontend: "Cloudflare Workers"
+    sidecars: "Fly.io"
+
+capabilities:
+  auth:
+    mode: jwt
+    oauth_providers:
+      - google
+    required: true
+  admin:
+    enabled: true
+  storage:
+    enabled: true
+    production: r2
+    local: minio
+  llm:
+    enabled: true
+    providers:
+      - anthropic
+      - openai
+      - deepseek
+      - ollama
+  sidecar:
+    enabled: true
+    type: playwright
+    rule: "Remove during scaffolding unless PDF, browser automation, or scraping is needed."
+  jobs:
+    enabled: false
+    preferred: river
+  payments:
+    enabled: false
+    mode: stripe_stub
+    rule: "Webhook code must fail closed until STRIPE_WEBHOOK_SECRET is configured."
+  browser_extension:
+    enabled: false
+  mobile_client:
+    enabled: false
+    default_type: expo
+    rule: "Do not scaffold mobile unless the product needs app-store distribution or native capabilities."
+    choose:
+      pwa: "Mobile-friendly dashboard, forms, or lightweight offline use."
+      expo: "iOS/Android app with shared TypeScript API client, push, camera, location, or offline drafts."
+      flutter: "Mobile-first product with heavy custom UI, animation, or performance needs."
+      native: "Deep OS integration, widgets, watch, AR, or platform-specific services."
+
+verification:
+  required_before_handoff:
+    - "backend: go test ./..."
+    - "frontend: npx tsc --noEmit"
+    - "frontend: npm run build"
+    - "frontend: npm run cf:build"
+    - "frontend: wrangler deploy --dry-run when credentials/tooling allow it"
+    - "docker compose build backend"
+    - "docker compose build frontend"
+    - "docker compose up smoke: backend /health, frontend /, sidecar /health when enabled"
+  unresolved_risk_policy: "If any check cannot be run, record the exact reason and reduce confidence."
+
+mobile_client_contract:
+  backend_requirements_when_enabled:
+    - "OAuth Authorization Code + PKCE, not browser-only OAuth assumptions"
+    - "Device table for push token, platform, app version, and last seen"
+    - "Refresh token rotation with per-device revoke and revoke-all"
+    - "Versioned API headers: X-Client and X-App-Version"
+    - "Offline sync or draft strategy when offline is a stated product need"
+  repo_layout_when_enabled:
+    - "apps/web - Next.js"
+    - "apps/mobile - Expo React Native"
+    - "packages/api-client - generated TypeScript API client"
+    - "packages/design-tokens - shared colors, spacing, and typography"
+
+known_loopholes_closed:
+  - "Cloudflare frontend default uses Workers/OpenNext, not legacy Pages/next-on-pages."
+  - "Production backend fails fast without DATABASE_URL and a real JWT_SECRET."
+  - "Stripe webhook fails closed unless a signing secret is configured."
+  - "Docker builds ignore local caches and generated framework output."
+  - "Local Compose ports avoid common 3000/5432/9000 collisions."
+  - "Rename must include .jsonc files such as frontend/wrangler.jsonc."
+
+known_residual_risks:
+  - "npm audit reports a moderate PostCSS advisory through Next/OpenNext. The offered npm audit fix downgrades Next to 9.3.3 and is not acceptable; revisit when Next/OpenNext publish a compatible patched dependency path."

@@ -1,0 +1,7 @@
+.gocache/
+.gomodcache/
+bin/
+tmp/
+*.test
+*.log
+.env

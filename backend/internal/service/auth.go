@@ -225,10 +225,22 @@ func (s *AuthService) ParseToken(tokenString string) (AuthClaims, error) {
 		return AuthClaims{}, errors.New("invalid claims")
 	}
 	exp, _ := claims.GetExpirationTime()
+	sub, err := claims.GetSubject()
+	if err != nil || sub == "" || exp == nil {
+		return AuthClaims{}, errors.New("invalid claims")
+	}
+	email, ok := claims["email"].(string)
+	if !ok || email == "" {
+		return AuthClaims{}, errors.New("invalid claims")
+	}
+	role, ok := claims["role"].(string)
+	if !ok || role == "" {
+		return AuthClaims{}, errors.New("invalid claims")
+	}
 	return AuthClaims{
-		Subject:   claims["sub"].(string),
-		Email:     claims["email"].(string),
-		Role:      model.Role(claims["role"].(string)),
+		Subject:   sub,
+		Email:     email,
+		Role:      model.Role(role),
 		ExpiresAt: exp.Time,
 	}, nil
 }

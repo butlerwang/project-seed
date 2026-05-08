@@ -19,6 +19,9 @@ import (
 
 func main() {
 	cfg := config.Load()
+	if err := cfg.ValidateServerStartup(); err != nil {
+		log.Fatal(err)
+	}
 
 	var repos repository.Repository = repository.NewMemoryRepository()
 	if cfg.DatabaseURL != "" {

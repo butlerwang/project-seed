@@ -31,7 +31,7 @@ minio-shell: ## Open MinIO mc shell
 
 rename: ## Rename project-seed → NAME (e.g. make rename NAME=myapp)
 	@echo "Renaming project-seed → $(NAME)"
-	find . -type f \( -name "*.go" -o -name "*.toml" -o -name "*.yml" -o -name "*.yaml" -o -name "*.json" -o -name "*.mjs" -o -name "*.ts" -o -name "*.tsx" -o -name "*.md" -o -name ".env.example" -o -name "Makefile" -o -name "Dockerfile" \) \
+	find . -type f \( -name "*.go" -o -name "*.toml" -o -name "*.yml" -o -name "*.yaml" -o -name "*.json" -o -name "*.jsonc" -o -name "*.mjs" -o -name "*.ts" -o -name "*.tsx" -o -name "*.md" -o -name ".env.example" -o -name "Makefile" -o -name "Dockerfile" \) \
 		-not -path "*/node_modules/*" -not -path "*/.git/*" \
 		| xargs sed -i.bak "s/project-seed/$(NAME)/g"
 	find . -name "*.bak" -delete

@@ -38,6 +38,17 @@ func TestStripeWebhookRejectsInvalidSignature(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
+func TestStripeWebhookDisabledWithoutSecret(t *testing.T) {
+	r := handler.NewRouter(testConfig(), nil, nil, storage.NewMemoryStorage())
+
+	body := []byte(`{"type":"checkout.session.completed"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/webhooks/stripe", bytes.NewReader(body))
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusNotImplemented, rr.Code)
+}
+
 func TestStripeWebhookAcceptsValidSignature(t *testing.T) {
 	cfg := testConfig()
 	cfg.StripeWebhookSecret = "whsec_testsecret"

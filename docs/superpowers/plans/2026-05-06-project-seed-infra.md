@@ -6,7 +6,7 @@
 
 **Architecture:** Four independent additions wired into the existing chi router. Logging replaces `chimw.Logger` with a structured `slog` middleware. Rate limiting is a new chi middleware. Storage is a new `storage` package with an interface + S3 implementation. Stripe is a new handler group registered under `/api/v1/webhooks/stripe`.
 
-**Tech Stack:** Go 1.23 stdlib `log/slog`, `golang.org/x/time/rate`, `github.com/aws/aws-sdk-go-v2` (S3-compatible), `github.com/stripe/stripe-go/v76`
+**Tech Stack:** Go 1.24 stdlib `log/slog`, `golang.org/x/time/rate`, `github.com/aws/aws-sdk-go-v2` (S3-compatible), `github.com/stripe/stripe-go/v76`
 
 ---
 

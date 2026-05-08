@@ -35,9 +35,10 @@ func NewRouter(cfg config.Config, svc *service.Services, repos repository.Reposi
 	var admin *adminHandler
 	if svc != nil {
 		auth = &authHandler{
-			svc:         svc,
-			frontendURL: cfg.FrontendURL,
-			googleCfg:   googleOAuthConfig(cfg),
+			svc:           svc,
+			frontendURL:   cfg.FrontendURL,
+			googleCfg:     googleOAuthConfig(cfg),
+			secureCookies: cfg.Environment == "production",
 		}
 		admin = &adminHandler{repos: repos}
 	}

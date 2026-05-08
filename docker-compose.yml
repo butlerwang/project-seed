@@ -2,13 +2,15 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT:-28080}:8080"
     environment:
       APP_ENV: development
       APP_ADDR: :8080
       DATABASE_URL: postgres://seed:seed@postgres:5432/seed?sslmode=disable
       JWT_SECRET: ${JWT_SECRET:-change-me-at-least-32-chars-long!!}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      APP_URL: http://localhost:${BACKEND_PORT:-28080}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:23000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:23000}
       SIDECAR_URL: http://pdf-sidecar:3001
       STORAGE_ENDPOINT: http://minio:9000
       STORAGE_ACCESS_KEY: seed
@@ -24,18 +26,21 @@ services:
         condition: service_healthy
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:${BACKEND_PORT:-28080}
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-23000}:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080
+      NEXT_PUBLIC_API_URL: http://localhost:${BACKEND_PORT:-28080}
     depends_on:
       - backend
 
   pdf-sidecar:
     build: ./services/pdf-sidecar
     ports:
-      - "3001:3001"
+      - "${SIDECAR_PORT:-13001}:3001"
     environment:
       PORT: 3001
 
@@ -46,7 +51,7 @@ services:
       POSTGRES_USER: seed
       POSTGRES_PASSWORD: seed
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-15432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -62,8 +67,8 @@ services:
       MINIO_ROOT_USER: seed
       MINIO_ROOT_PASSWORD: seed-dev-secret
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "${MINIO_PORT:-19000}:9000"
+      - "${MINIO_CONSOLE_PORT:-19001}:9001"
     volumes:
       - minio_data:/data
 

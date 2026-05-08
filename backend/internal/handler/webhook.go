@@ -21,17 +21,20 @@ type webhookHandler struct {
 }
 
 func (h *webhookHandler) stripe(w http.ResponseWriter, r *http.Request) {
+	if h.secret == "" {
+		http.Error(w, "stripe webhook not configured", http.StatusNotImplemented)
+		return
+	}
+
 	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	if err != nil {
 		http.Error(w, "read error", http.StatusBadRequest)
 		return
 	}
 
-	if h.secret != "" {
-		if err := verifyStripeSignature(r.Header.Get("Stripe-Signature"), body, h.secret); err != nil {
-			http.Error(w, "invalid signature", http.StatusBadRequest)
-			return
-		}
+	if err := verifyStripeSignature(r.Header.Get("Stripe-Signature"), body, h.secret); err != nil {
+		http.Error(w, "invalid signature", http.StatusBadRequest)
+		return
 	}
 
 	var event stripe.Event

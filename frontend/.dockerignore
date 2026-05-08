@@ -1,0 +1,10 @@
+.next/
+.open-next/
+.wrangler/
+node_modules/
+.vercel/
+out/
+*.tsbuildinfo
+*.log
+.env
+.env.local

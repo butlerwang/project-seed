@@ -10,6 +10,8 @@ backend/.gomodcache/
 
 # Next.js
 frontend/.next/
+frontend/.open-next/
+frontend/.wrangler/
 frontend/node_modules/
 frontend/.vercel/
 frontend/out/

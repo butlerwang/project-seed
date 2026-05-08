@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"strconv"
 	"strings"
@@ -38,13 +39,15 @@ type Config struct {
 	AdminEmail          string
 }
 
+const defaultJWTSecret = "change-me-at-least-32-chars-long!!"
+
 func Load() Config {
 	return Config{
 		Environment:         env("APP_ENV", "development"),
 		Address:             env("APP_ADDR", ":8080"),
 		DatabaseURL:         env("DATABASE_URL", ""),
 		CORSOrigins:         envList("CORS_ORIGINS", []string{"http://localhost:3000"}),
-		JWTSecret:           env("JWT_SECRET", "change-me-at-least-32-chars-long!!"),
+		JWTSecret:           env("JWT_SECRET", defaultJWTSecret),
 		AppURL:              env("APP_URL", "http://localhost:8080"),
 		FrontendURL:         env("FRONTEND_URL", "http://localhost:3000"),
 		SidecarURL:          env("SIDECAR_URL", "http://localhost:3001"),
@@ -70,6 +73,19 @@ func Load() Config {
 		OllamaCapable:       env("OLLAMA_CAPABLE_MODEL", "qwen3:8b"),
 		AdminEmail:          env("ADMIN_EMAIL", ""),
 	}
+}
+
+func (c Config) ValidateServerStartup() error {
+	if c.Environment != "production" {
+		return nil
+	}
+	if c.DatabaseURL == "" {
+		return errors.New("DATABASE_URL is required in production")
+	}
+	if c.JWTSecret == "" || c.JWTSecret == defaultJWTSecret || len(c.JWTSecret) < 32 {
+		return errors.New("JWT_SECRET must be set to a non-default value with at least 32 characters in production")
+	}
+	return nil
 }
 
 func env(key, fallback string) string {

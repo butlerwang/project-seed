@@ -19,9 +19,10 @@ import (
 )
 
 type authHandler struct {
-	svc         *service.Services
-	frontendURL string
-	googleCfg   *oauth2.Config
+	svc           *service.Services
+	frontendURL   string
+	googleCfg     *oauth2.Config
+	secureCookies bool
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -48,7 +49,7 @@ func (h *authHandler) register(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	setRefreshCookie(w, result.RefreshToken)
+	setRefreshCookie(w, result.RefreshToken, h.secureCookies)
 	writeJSON(w, http.StatusCreated, map[string]any{"token": result.Token, "user": result.User})
 }
 
@@ -66,7 +67,7 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
-	setRefreshCookie(w, result.RefreshToken)
+	setRefreshCookie(w, result.RefreshToken, h.secureCookies)
 	writeJSON(w, http.StatusOK, map[string]any{"token": result.Token, "user": result.User})
 }
 
@@ -81,7 +82,7 @@ func (h *authHandler) refresh(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusUnauthorized, "refresh token expired")
 		return
 	}
-	setRefreshCookie(w, result.RefreshToken)
+	setRefreshCookie(w, result.RefreshToken, h.secureCookies)
 	writeJSON(w, http.StatusOK, map[string]any{"token": result.Token, "user": result.User})
 }
 
@@ -89,7 +90,7 @@ func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie("refresh_token"); err == nil {
 		_ = h.svc.Auth.Logout(c.Value)
 	}
-	http.SetCookie(w, &http.Cookie{Name: "refresh_token", Value: "", MaxAge: -1, HttpOnly: true, Path: "/"})
+	clearRefreshCookie(w, h.secureCookies)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -169,7 +170,7 @@ func (h *authHandler) googleRedirect(w http.ResponseWriter, r *http.Request) {
 		Name:     "oauth_state",
 		Value:    state,
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   h.secureCookies,
 		SameSite: http.SameSiteLaxMode,
 		Path:     "/",
 		MaxAge:   300,
@@ -187,7 +188,7 @@ func (h *authHandler) googleCallback(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "invalid oauth state")
 		return
 	}
-	http.SetCookie(w, &http.Cookie{Name: "oauth_state", Value: "", MaxAge: -1, Path: "/"})
+	clearOAuthStateCookie(w, h.secureCookies)
 
 	token, err := h.googleCfg.Exchange(r.Context(), r.URL.Query().Get("code"))
 	if err != nil {
@@ -204,7 +205,7 @@ func (h *authHandler) googleCallback(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, "failed to create user")
 		return
 	}
-	setRefreshCookie(w, result.RefreshToken)
+	setRefreshCookie(w, result.RefreshToken, h.secureCookies)
 	http.Redirect(w, r, h.frontendURL+"/dashboard?token="+result.Token, http.StatusFound)
 }
 
@@ -239,14 +240,38 @@ func generateState() string {
 	return base64.RawURLEncoding.EncodeToString(b)
 }
 
-func setRefreshCookie(w http.ResponseWriter, token string) {
+func setRefreshCookie(w http.ResponseWriter, token string, secure bool) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refresh_token",
 		Value:    token,
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   secure,
 		SameSite: http.SameSiteLaxMode,
 		Path:     "/",
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
+	})
+}
+
+func clearRefreshCookie(w http.ResponseWriter, secure bool) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
+	})
+}
+
+func clearOAuthStateCookie(w http.ResponseWriter, secure bool) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauth_state",
+		Value:    "",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
 	})
 }
